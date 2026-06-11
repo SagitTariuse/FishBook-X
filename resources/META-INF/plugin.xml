@@ -1,34 +1,92 @@
 <idea-plugin>
-    <id>icu.jogeen.fishbook.id</id>
-    <name>FishBook</name>
-    <version>1.3</version>
-    <vendor email="jogeen@qq.com" url="https://github.com/jogeen/FishBook">jogeen</vendor>
+    <id>icu.sagittariuse.fishbookx</id>
+    <name>FishBook-X</name>
+    <version>2.0.0</version>
+    <vendor email="18375669585@163.com" url="https://github.com/SagitTariuse/FishBook-X">SagitTariuse</vendor>
 
-    <description>It allows you to read novels on your local hard drive and get a reading experience like a Kindle. It can remember your reading progress like a bookmark, so that you can continue to read next time, and provides page turning function.
-        instructions:
-        1. You need to prepare an e-book
-        2. Search fishbook in setting for basic information setting
-        3. You can read e-books in the side window of IDE
-        <![CDATA[<br><em>touch fish</em>
+    <!-- 插件描述（必填，且应使用英文） -->
+    <description><![CDATA[
+        <h2>FishBook-X — Read Novels in IDEA</h2>
+        <p><b>Notice:</b> This plugin is a fork of
+        <a href="https://github.com/jogeen/FishBook">jogeen/FishBook</a> (original author: <code>jogeen</code>, 2020).
+        The original project targets the old IntelliJ Platform API; this fork adapts it to IDEA 2025.3.4
+        and adds new features. All original design and code belong to the original author.</p>
+
+        <h3>What is FishBook?</h3>
+        <p>A lightweight plugin that lets you read TXT novels directly in your IntelliJ IDEA side tool window.</p>
+
+        <h3>Features (inherited from the original project)</h3>
+        <ul>
+            <li>📖 Read TXT e-books in a dedicated tool window</li>
+            <li>🔖 Auto-save reading progress (bookmark-like)</li>
+            <li>⏭️ Page turning (previous/next/first/last)</li>
+            <li>🔢 Custom page size</li>
+        </ul>
+
+        <h3>New in FishBook-X (added in this fork)</h3>
+        <ul>
+            <li>🆕 <b>Chapter detection &amp; quick jump</b> — auto-detects <code>第N章 / Chapter N / 序章 / 楔子</code> etc.,
+                and lets you jump straight to a chapter's first page from a dropdown.</li>
+            <li>🆕 <b>Remember last-read chapter</b> — the chapter dropdown restores your last position
+                after a restart.</li>
+            <li>🆕 <b>Keyboard page turning</b> — press <code>←</code> / <code>→</code> in the reader
+                to flip pages.</li>
+            <li>🆕 <b>Performance rewrite</b> — the book is now loaded into memory once with a
+                <code>BufferedReader</code>; page turning is O(1).</li>
+            <li>🆕 <b>Modern platform APIs</b> — migrated to <code>Light Service</code>,
+                <code>NotificationGroupManager</code>, <code>ContentFactory.getInstance()</code>,
+                compatible with IntelliJ IDEA 2025.3.4 (build 253.x).</li>
+        </ul>
+
+        <h3>How to Use</h3>
+        <ol>
+            <li>Open <b>Settings → Tools → FishBook Config</b></li>
+            <li>Click <b>选择...</b> to pick a TXT e-book file</li>
+            <li>Set the page size (default: 10 lines per page)</li>
+            <li>Click <b>Apply</b></li>
+            <li>Open the <b>FishBook</b> tool window on the right side</li>
+            <li>Use the chapter dropdown to jump to any chapter</li>
+        </ol>
+
+        <h3>Chapter Detection</h3>
+        <p>Supports common chapter formats:</p>
+        <ul>
+            <li><code>第N章 / 第N回 / 第N节 / 第N卷</code></li>
+            <li><code>Chapter N</code></li>
+            <li><code>序章 / 楔子 / 尾声 / 番外</code></li>
+        </ul>
+
+        <h3>Credits &amp; License</h3>
+        <p>Original project: <a href="https://github.com/jogeen/FishBook">github.com/jogeen/FishBook</a></p>
+        <p>This fork: <a href="https://github.com/SagitTariuse/FishBook-X">github.com/SagitTariuse/FishBook-X</a></p>
+        <p>License: Apache 2.0</p>
     ]]></description>
 
+    <!-- 更新日志（必填，每次发布都要写） -->
     <change-notes><![CDATA[
-     New left and right quick page turning function<br>
-      <em>txt </em>
-    ]]>
-    </change-notes>
+        <h3>FishBook-X 2.0.0 (2026-06-11) — first fork release</h3>
+        <p><i>This is a fork of <a href="https://github.com/jogeen/FishBook">jogeen/FishBook</a>.
+        All original credits belong to the original author.</i></p>
+        <ul>
+            <li>✅ Adapted for IntelliJ IDEA 2025.3.4 (build 253.x)</li>
+            <li>🚀 Performance: file is now loaded into memory once via <code>BufferedReader</code>; page turning is O(1)</li>
+            <li>📑 New: auto-detect chapters (<code>第N章 / Chapter N / 序章 / 楔子</code>), quick chapter jump</li>
+            <li>🔖 New: remember last-read chapter</li>
+            <li>⌨️ New: keyboard shortcuts (← / →) for page turning</li>
+            <li>🐛 Fix: replaced deprecated APIs (ServiceManager, NotificationGroup constructor, etc.)</li>
+            <li>🎨 UI: rewrote both <code>ReadUI</code> and <code>SettingUI</code> as pure code
+                (no GUI Designer bytecode instrumentation dependency — fixes the
+                "Select configuration element in the tree" error)</li>
+        </ul>
+    ]]></change-notes>
 
-    <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
-    <idea-version since-build="173.0"/>
+    <!-- IntelliJ IDEA 2025.3.4 build = 253.32098.37 -->
+    <idea-version since-build="253.32098.37"/>
 
-    <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
-         on how to target different products -->
-    <!-- uncomment to enable plugin in all products   -->
+    <!-- 依赖的平台模块 -->
     <depends>com.intellij.modules.lang</depends>
 
-
     <extensions defaultExtensionNs="com.intellij">
-        <!-- Add your extensions here -->
         <projectConfigurable groupId="tools" displayName="FishBook Config" id="fish.id"
                              instance="icu.jogeen.fishbook.factory.SettingConfigFactory"/>
         <applicationService serviceInterface="icu.jogeen.fishbook.service.PersistentState"
@@ -36,12 +94,10 @@
 
         <toolWindow id="FishBook" secondary="true" anchor="right"
                     factoryClass="icu.jogeen.fishbook.factory.ReadWindowFactory">
-
         </toolWindow>
     </extensions>
 
     <actions>
-        <!-- Add your actions here -->
     </actions>
 
 </idea-plugin>

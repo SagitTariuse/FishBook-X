@@ -14,9 +14,13 @@ import javax.swing.*;
 import java.io.File;
 
 /**
- * @Author jogeen
- * @Date 14:28 2020/6/24
+ * @Author jogeen    （原作者，2020/6/24）
+ * @Maintainer SagitTariuse  （适配 IDEA 2025.3.4，2026/06）
+ * @OriginalRepo https://github.com/jogeen/FishBook
+ * @ThisRepo     https://github.com/SagitTariuse/FishBook-X
  * @Description
+ *
+ * 详细 fork 声明见 service 包 NOTICE.md。
  */
 public class SettingConfigFactory implements SearchableConfigurable {
     private SettingUI settingUI;
