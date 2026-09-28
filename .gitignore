@@ -22,3 +22,6 @@ build.gradle.kts.bak
 settings.gradle.kts.bak
 compile.bat
 create_icon.py
+
+# 打包好的插件 jar（由 rebuild.bat 生成）
+*.jar

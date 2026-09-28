@@ -44,6 +44,13 @@ public class ReadUI {
     private Long totalPage;
     private final PersistentState persistentState = PersistentState.getInstance();
 
+    /**
+     * 章节下拉框的 reentry guard。
+     * 防止 setSelectedItem/setSelectedIndex 触发 ActionListener，
+     * 进而递归调 turnPage 导致的下拉框状态错乱 bug。
+     */
+    private boolean suppressChapterEvent = false;
+
     private void initBookScanner() {
         BookScanner scanner = BookScannerBuilder.getBookScaner();
         if (scanner == null) {
@@ -58,6 +65,14 @@ public class ReadUI {
                 : scanner.getTotalLines() / persistentState.getPageSize() + 1;
         labTotalPages.setText("" + totalPage);
         labBookName.setText(scanner.bookName());
+    }
+
+    /**
+     * 第一次打开 ToolWindow 时调用：刷新基本信息和加载章节下拉框。
+     * 后续翻页不会再调用本方法，避免重置下拉框触发事件。
+     */
+    private void firstInitUi() {
+        initBookScanner();
         loadChapters();
     }
 
@@ -73,31 +88,37 @@ public class ReadUI {
         List<Chapter> chapters = ((icu.jogeen.fishbook.service.TxtBookScanner) scanner)
                 .getChapters(persistentState.getPageSize());
 
-        cbChapter.removeAllItems();
-        if (chapters.isEmpty()) {
-            // 没识别到章节时显示提示
-            cbChapter.addItem(new Chapter("（未识别到章节）", 0, 1));
-            cbChapter.setEnabled(false);
-            return;
-        }
-        cbChapter.setEnabled(true);
-        for (Chapter c : chapters) {
-            cbChapter.addItem(c);
-        }
+        // 用 reentry guard 包裹：清空和填充下拉框时不应触发任何业务逻辑
+        suppressChapterEvent = true;
+        try {
+            cbChapter.removeAllItems();
+            if (chapters.isEmpty()) {
+                // 没识别到章节时显示提示
+                cbChapter.addItem(new Chapter("（未识别到章节）", 0, 1));
+                cbChapter.setEnabled(false);
+                return;
+            }
+            cbChapter.setEnabled(true);
+            for (Chapter c : chapters) {
+                cbChapter.addItem(c);
+            }
 
-        // 恢复上次阅读的章节
-        String lastChapter = persistentState.getLastChapterName();
-        if (lastChapter != null) {
-            for (int i = 0; i < chapters.size(); i++) {
-                if (chapters.get(i).getName().equals(lastChapter)) {
-                    cbChapter.setSelectedIndex(i);
-                    return;
+            // 恢复上次阅读的章节
+            String lastChapter = persistentState.getLastChapterName();
+            if (lastChapter != null) {
+                for (int i = 0; i < chapters.size(); i++) {
+                    if (chapters.get(i).getName().equals(lastChapter)) {
+                        cbChapter.setSelectedIndex(i);
+                        return;
+                    }
                 }
             }
-        }
-        // 默认选第一个章节
-        if (!chapters.isEmpty()) {
-            cbChapter.setSelectedIndex(0);
+            // 默认选第一个章节
+            if (!chapters.isEmpty()) {
+                cbChapter.setSelectedIndex(0);
+            }
+        } finally {
+            suppressChapterEvent = false;
         }
     }
 
@@ -121,9 +142,9 @@ public class ReadUI {
         labChapterLabel = new JLabel("章节：");
         cbChapter = new JComboBox<>();
         cbChapter.setMaximumRowCount(15); // 一次显示 15 个章节
-        // 限制下拉框显示宽度（约 15 个中文字符 ≈ 210px）
+        // 限制下拉框显示宽度（约 21 个中文字符 ≈ 294px = 210 + 6 字符）
         // 注意：下拉弹窗中仍会显示完整章节名
-        Dimension fixedSize = new Dimension(210, cbChapter.getPreferredSize().height);
+        Dimension fixedSize = new Dimension(294, cbChapter.getPreferredSize().height);
         cbChapter.setPreferredSize(fixedSize);
         cbChapter.setMaximumSize(fixedSize);
         cbChapter.setMinimumSize(fixedSize);
@@ -216,6 +237,10 @@ public class ReadUI {
         cbChapter.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                // reentry guard：loadChapters 和 syncChapterByPage 触发的 setSelectedItem 不应递归
+                if (suppressChapterEvent) {
+                    return;
+                }
                 Chapter selected = (Chapter) cbChapter.getSelectedItem();
                 if (selected != null && selected.getStartPage() > 0) {
                     persistentState.setLastChapterName(selected.getName());
@@ -240,7 +265,13 @@ public class ReadUI {
     }
 
     public void turnPage(int i) {
-        initBookScanner();
+        // 首次翻页：完整初始化（基本信息 + 章节下拉框）。
+        // 后续翻页：只刷新页码对应的内容，不再碰下拉框，避免下拉框状态错乱。
+        if (totalPage == null) {
+            firstInitUi();
+        } else {
+            initBookScanner();
+        }
         if (i < 0 || totalPage == null || i > totalPage) {
             return;
         }
@@ -273,20 +304,30 @@ public class ReadUI {
             return;
         }
         // 找到当前页所属的章节（最后一个 startPage <= currentPage 的章节）
-        Chapter matched = chapters.get(0);
-        for (Chapter c : chapters) {
+        int matchedIndex = 0;
+        for (int i = 0; i < chapters.size(); i++) {
+            Chapter c = chapters.get(i);
             if (c.getStartPage() <= currentPage) {
-                matched = c;
+                matchedIndex = i;
             } else {
                 break;
             }
         }
-        // 避免循环触发事件
-        Chapter currentSelected = (Chapter) cbChapter.getSelectedItem();
-        if (currentSelected == null || !currentSelected.getName().equals(matched.getName())) {
-            cbChapter.setSelectedItem(matched);
-            persistentState.setLastChapterName(matched.getName());
+        Chapter matched = chapters.get(matchedIndex);
+
+        // 避免循环触发事件 + 避免重复设置
+        if (cbChapter.getSelectedIndex() == matchedIndex) {
+            return;
         }
+        // 用 reentry guard 包裹 setSelectedIndex（按 index 设，不依赖 Chapter.equals），
+        // 避免再次触发 ActionListener
+        suppressChapterEvent = true;
+        try {
+            cbChapter.setSelectedIndex(matchedIndex);
+        } finally {
+            suppressChapterEvent = false;
+        }
+        persistentState.setLastChapterName(matched.getName());
     }
 
     public JPanel getJcontent() {

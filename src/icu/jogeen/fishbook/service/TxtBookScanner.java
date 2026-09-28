@@ -35,19 +35,36 @@ import java.util.regex.Pattern;
  */
 public class TxtBookScanner implements BookScanner {
 
-    /** 章节标题正则（中文：第N章/回/节/卷/部/集/篇 + 可选标题） */
+    /**
+     * 前导/内嵌空白。
+     *
+     * <p>Java 正则的 {@code \s} 默认只覆盖 ASCII 空白（{@code [ \t\n\x0B\f\r]}），
+     * <b>不包含</b>全角空格 U+3000 和不换行空格 U+00A0——而 TXT 小说普遍用全角空格
+     * 给正文和章节标题缩进。只写 {@code \s*} 会让「　　第三十二章」整章漏识别。</p>
+     */
+    private static final String WS = "[\\s\\u00A0\\u3000]*";
+
+    /**
+     * 章节标题正则（中文：第N章/回/节/卷/部/集/篇 + 可选标题）。
+     *
+     * <p>字符集必须包含全部中文数字写法。注意「两」不可省略：不少书（如《凡人》）
+     * 在某个章节之后会把标题从「第一千九百九十九章」改写成「第两千章」，
+     * 一旦漏掉「两」，该书从那一章往后的所有章节都会匹配失败、下拉框直接断掉。</p>
+     *
+     * <p>「第」与数字、数字与量词之间都允许空白，以兼容「第 2000 章」这类带空格的写法。</p>
+     */
     private static final Pattern CHAPTER_PATTERN_CN = Pattern.compile(
-            "^\\s*第[零〇一二三四五六七八九十百千万0-9\\d]+[章回节卷部集篇].*"
+            "^" + WS + "第" + WS + "[零〇一二两三四五六七八九十百千万0-9\\d]+" + WS + "[章回节卷部集篇].*"
     );
 
     /** 章节标题正则（英文：Chapter N + 可选标题） */
     private static final Pattern CHAPTER_PATTERN_EN = Pattern.compile(
-            "^\\s*(?:Chapter|CHAPTER)\\s+[0-9一二三四五六七八九十]+.*"
+            "^" + WS + "(?:Chapter|CHAPTER)" + WS + "[0-9一二两三四五六七八九十]+.*"
     );
 
     /** 特殊章节（不分卷） */
     private static final Pattern SPECIAL_CHAPTER_PATTERN = Pattern.compile(
-            "^\\s*(序章|序言|楔子|引子|尾声|后记|番外|序)\\s*.*"
+            "^" + WS + "(序章|序言|楔子|引子|尾声|后记|番外|序)" + WS + ".*"
     );
 
     private final File file;
@@ -79,7 +96,9 @@ public class TxtBookScanner implements BookScanner {
             while ((line = reader.readLine()) != null) {
                 lines.add(line);
                 if (isChapterTitle(line)) {
-                    String name = line.trim();
+                    // 用 strip() 而非 trim()：后者只去 ASCII 空白，
+                    // 全角空格（U+3000）会残留在章节名里
+                    String name = line.strip();
                     // 章节名太长时截断显示
                     if (name.length() > 50) {
                         name = name.substring(0, 50) + "...";
@@ -99,7 +118,7 @@ public class TxtBookScanner implements BookScanner {
      */
     private boolean isChapterTitle(String line) {
         if (line == null) return false;
-        String trimmed = line.trim();
+        String trimmed = line.strip();
         if (trimmed.isEmpty()) return false;
         return CHAPTER_PATTERN_CN.matcher(trimmed).matches()
                 || CHAPTER_PATTERN_EN.matcher(trimmed).matches()

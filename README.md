@@ -65,7 +65,7 @@
 
 1. 克隆本仓库
 2. IDEA → `Settings` → `Plugins` → ⚙️ → `Install Plugin from Disk...`
-3. 选择 `build/FishBook-X-2.0.0.jar`
+3. 选择 `build/FishBook-X-2.0.2.jar`
 
 ---
 
@@ -93,6 +93,18 @@
 - `Chapter N` / `CHAPTER N`
 - 特殊：`序章 / 序言 / 楔子 / 引子 / 尾声 / 后记 / 番外 / 序`
 
+其中 `N` 可以是阿拉伯数字（`第2000章`）或中文数字（`第一千九百九十九章`），
+中文数字包含两套写法里的全部字符（含 `两`，如 `第两千章`）。
+
+识别时对排版比较宽容：
+
+- 允许**全角空格**缩进（`　　第三十二章`，TXT 小说的常见排版）
+- 允许 `第` 与数字、数字与量词之间有空格（`第 2000 章`）
+
+> ⚠️ 2.0.1 及更早版本漏掉了中文数字里的 `两`，且不识别全角空格缩进。
+> 因此像《凡人》这类中途换标题写法的书，会从换写法的那一章起整片丢失章节。
+> 2.0.2 已修复。
+
 ---
 
 ## 🛠 编译 / Build
@@ -104,7 +116,7 @@
 export JAVA_HOME=/path/to/jbr-21
 
 ./gradlew buildPlugin
-# 产物在 build/distributions/FishBook-X-2.0.0.zip
+# 产物在 build/distributions/FishBook-X-2.0.2.zip
 ```
 
 > 💡 **本机环境提示**：若你的机器上 Gradle 9 与 JDK 8 冲突，可以直接用 javac 编译：
@@ -125,9 +137,30 @@ FishBook/
 │   ├── META-INF/plugin.xml    ← 插件清单（含 fork 说明）
 │   ├── icon.png / icon_150.png
 │   └── ...
+├── test/
+│   └── ChapterScanTest.java   ← 章节识别回归测试
 ├── build.gradle.kts           ← Gradle 构建脚本
 └── README.md                  ← 本文件
 ```
+
+### 运行章节识别测试
+
+章节识别靠正则，对排版很敏感，因此配了一个回归测试：
+
+```bash
+# 用 IDEA 自带的 JBR 21 编译（不依赖 Gradle）
+JBR="/path/to/IntelliJ IDEA 2025.3.4/jbr/bin"
+mkdir -p build/testonly
+"$JBR/javac.exe" -encoding UTF-8 -d build/testonly \
+    src/icu/jogeen/fishbook/service/{BookScanner,Chapter,TxtBookScanner}.java \
+    test/ChapterScanTest.java
+
+# 跑测试；也可传一本自己的小说做集成验证
+"$JBR/java.exe" -Dstdout.encoding=UTF-8 \
+    -cp build/testonly icu.jogeen.fishbook.test.ChapterScanTest
+```
+
+全部通过时输出 `=== ALL PASS ===` 并以 0 退出。
 
 ---
 

@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>icu.sagittariuse.fishbookx</id>
     <name>FishBook-X</name>
-    <version>2.0.0</version>
+    <version>2.0.2</version>
     <vendor email="18375669585@163.com" url="https://github.com/SagitTariuse/FishBook-X">SagitTariuse</vendor>
 
     <!-- 插件描述（必填，且应使用英文） -->
@@ -64,6 +64,63 @@
 
     <!-- 更新日志（必填，每次发布都要写） -->
     <change-notes><![CDATA[
+        <h3>FishBook-X 2.0.2 (2026-09-28) — chapter detection fixes</h3>
+        <ul>
+            <li>🐛 <b>Fix: chapter list was truncated from a certain chapter onwards</b>
+                <ul>
+                    <li>Affected books include <i>凡人</i>, where the heading style switches
+                        mid-book from <code>第一千九百九十九章</code> to <code>第两千章</code>.
+                        The Chinese-numeral character set was missing <code>两</code>, so every chapter
+                        from that point on failed to match — 447 of 2463 chapters disappeared and the
+                        dropdown appeared to stop at <code>第十一卷</code>.</li>
+                    <li>Fix: added <code>两</code> to the character set.</li>
+                </ul>
+            </li>
+            <li>🐛 <b>Fix: chapter headings indented with full-width spaces were not detected</b>
+                <ul>
+                    <li>Root cause: Java's <code>\s</code> matches ASCII whitespace only, not U+3000
+                        (full-width space) — which is what most Chinese TXT novels use for indentation.
+                        Also, <code>String.trim()</code> only strips ASCII whitespace, so detected
+                        chapter names kept their <code>　　</code> prefix.</li>
+                    <li>Fix: match U+3000 / U+00A0 explicitly in all chapter patterns, and switch
+                        <code>trim()</code> to <code>strip()</code>.</li>
+                </ul>
+            </li>
+            <li>✨ <b>Support spaced headings such as <code>第 2000 章</code></b> — whitespace is now
+                tolerated both after <code>第</code> and before the chapter measure
+                (<code>章/回/节/卷/部/集/篇</code>).</li>
+        </ul>
+        <h3>FishBook-X 2.0.1 (2026-06-12) — bug fix</h3>
+        <ul>
+            <li>🐛 <b>Fix: chapter dropdown jumped to first chapter after page turning</b>
+                <ul>
+                    <li>Root cause: <code>loadChapters()</code> was called on every page turn,
+                        and <code>cbChapter.setSelectedIndex(...)</code> fired the chapter's
+                        <code>ActionListener</code>, which recursively called <code>turnPage()</code>
+                        and reset the dropdown to the first chapter.</li>
+                    <li>Fix: split the UI initialization into <code>firstInitUi()</code> (runs only
+                        once) and the page-turn hot path. Added a <code>suppressChapterEvent</code>
+                        reentry guard around all <code>setSelectedIndex</code> calls so the chapter
+                        dropdown no longer triggers recursive page jumps.</li>
+                </ul>
+            </li>
+            <li>🐛 <b>Fix: chapter dropdown did not update when turning pages</b>
+                <ul>
+                    <li>Root cause: <code>Chapter</code> did not override <code>equals()</code>, so
+                        <code>JComboBox.setSelectedItem(newChapter)</code> could not find the
+                        matching item already inside the dropdown (it relies on <code>equals</code>
+                        to look up the model). The call returned silently and the dropdown display
+                        did not change.</li>
+                    <li>Fix: rewrote <code>syncChapterByPage()</code> to compute the matched chapter's
+                        <b>index</b> first, then call <code>setSelectedIndex(matchedIndex)</code>
+                        with the reentry guard. Index-based selection is independent of the
+                        <code>Chapter.equals()</code> behavior, so the dropdown now updates reliably.</li>
+                </ul>
+            </li>
+            <li>🎨 <b>Chapter dropdown width: 210px → 294px</b> (~15 → ~21 Chinese chars) so longer
+                chapter titles (e.g. <code>第 1234 章 长长的标题文字示例</code>) fit in the closed
+                dropdown.</li>
+        </ul>
         <h3>FishBook-X 2.0.0 (2026-06-11) — first fork release</h3>
         <p><i>This is a fork of <a href="https://github.com/jogeen/FishBook">jogeen/FishBook</a>.
         All original credits belong to the original author.</i></p>
