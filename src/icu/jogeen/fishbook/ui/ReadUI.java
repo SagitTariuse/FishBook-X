@@ -56,7 +56,7 @@ public class ReadUI {
         if (scanner == null) {
             scanner = BookScannerBuilder.builder(null);
             if (scanner == null) {
-                MessageDialogBuilder.yesNo("操作结果", "请先配置图书路径").show();
+                MessageDialogBuilder.yesNo("操作结果", "请先配置图书路径").guessWindowAndAsk();
                 return;
             }
         }
@@ -229,7 +229,7 @@ public class ReadUI {
                     int pageNnum = Integer.parseInt(text);
                     turnPage(pageNnum);
                 } catch (NumberFormatException ex) {
-                    MessageDialogBuilder.yesNo("提示", "请输入有效的页码").show();
+                    MessageDialogBuilder.yesNo("提示", "请输入有效的页码").guessWindowAndAsk();
                 }
             }
         });
